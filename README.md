@@ -6,7 +6,7 @@ The repository for autonomous subsystems codes for Mars Rover Project, IIT-Bomba
 * [GPS_IMU_app](./GPS_IMU_app): Contains code for android app made to publish GPS and IMU sensor readings of an android phone(should have a magnetometer) as rostopics `\LatLon` and `\IMU`
 * [Mobility Workspace](./mobility_ws): Contains code for closed loop steer of rover for level 3 autonomous implementation
 * [Steer-Drive Switch](./steer_drive_switch.py): **Python2.7** code for shifting between steer and drive modes
-
+* [Ball_Detection](./Ball_Detection): Contains code for ball detection. Also has weights for supervised ball detection
 ---
 ## Idetified work points
 
