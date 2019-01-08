@@ -14,55 +14,43 @@ import detect_ball
 import time
 
 max_size = 255*1000 # max size of ball allowed
+#Number of images for one rotation (TODO: get this via IMU)
 one_rot = 250
-mask_size = []
-ball_prob = []
-data = []
-t = 0
+#Number of Pixels highlighted (output of unsupervised)
+mask_size = np.zeros(one_rot)
+#Ball Probability (output of supervised)
+ball_prob = np.zeros(one_rot)
+#List of np arrays: storing images
+data = np.zeros(one_rot,2)
+
+#make ./file.h5
+#Feed Forward wts
 new_model = load_model('/home/youknowwho/Documents/ROS/src/image_rcv/src/new_model_num_coluoured.h5')
 
-for i in range(one_rot):
-	ball_prob.append(0)
-	mask_size.append(0)
-	data.append(0)
-	empty.append(0)
 
 def supervised(array):
-	global new_model
 	# a = np.load("/home/ameya/Desktop/MRT/no_ball_h3.npy")
+	# Input: np array of images Output: Max probab and index
 	b = (new_model.predict(array, batch_size=None, verbose=0, steps=None))
-	i = 0
-	store = 0
-	big = 0
-	while i< len(b):
-		z = big
-		big = max(big,b[i][0])
-		# print "prob", i,"\t",b[i][0]
-		if big > z:
-			store = i
-		i = i+1
-	# print
-	# print
-	return store, big
-
-# class publisher:
-
-# 	def __init__(self):
-# 		self.image_pub = rospy.Publisher("turn",Image,queue_size=10) # publish window to supervised
-# 		self.bridge = CvBridge()
-# 		self.image_sub = rospy.Subscriber("supervised",String,self.callback) # get probability from supervised
-
-# 	def callback(self,data):
-# 		global outstanding
-# 		ball_prob.append(float(data.data))
-# 		outstanding = 0
+	# i = 0
+	# store = 0
+	# big = 0
+	# while i< len(b):
+	# 	z = big
+	# 	big = max(big,b[i][0])
+	# 	# print "prob", i,"\t",b[i][0]
+	# 	if big > z:
+	# 		store = i
+	# 	i = i+1
+	# big=np.max(b[])
+	# # print
+	# # print
+	# # Max probab and index
+	return np.argmax(b[:,0]),np.max(b[:,0])
 
 
 if __name__ == '__main__':
-	# pub = publisher()
-	# rospy.init_node('pub', anonymous=True)
-	# r = rospy.Rate(1) # 1 second rate
-	
+
 	resource = 1
 	print "Trying to open resource: " + str(resource)
 	cap = cv2.VideoCapture(resource)
