@@ -15,10 +15,14 @@ import time
 import os
 
 max_size = 255*1000 # max size of ball allowed
-mask_size = []
-ball_prob = []
-data = []
-t = 0
+#Number of images for one rotation (TODO: get this via IMU)
+one_rot = 250
+#Number of Pixels highlighted (output of unsupervised)
+mask_size = np.zeros(one_rot)
+#Ball Probability (output of supervised)
+ball_prob = np.zeros(one_rot)
+#List of np arrays: storing images
+data = np.zeros(one_rot,2)
 new_model = load_model('/home/youknowwho/Documents/ROS/src/image_rcv/src/new_model_num_coluoured.h5')
 
 def supervised(array):
