@@ -127,19 +127,6 @@ def getWindow(image, mask):
 	# cv2.rectangle(image,(x1,y1),(x2,y2),(255,255,255),2)
 	return window
 
-# def getMultiWindow(image, mask):
-# 	windows = []
-# 	# mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
-# 	_, contours, _ = cv2.findContours(mask,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
-# 	cv2.drawContours(image, contours, -1, (0,255,0), 1)
-# 	cv2.imwrite("test.jpg",image)
-# 	print len(contours)
-# 	for contour in contours:
-# 		window = getWindow(image,contour)
-# 		# print window.shape
-# 		windows.append(window)
-# 	return np.array(windows)
-
 def getMultiWindow(image, mask):
 	windows = []
 	mask = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)[1]
@@ -170,26 +157,3 @@ def getMultiWindow(image, mask):
 		window = getWindow(image, label)
 		windows.append(window)
 	return np.array(windows)#,labeled_img
-
-
-	# print ret
-	# print labels
-	# for i,l in enumerate(labels):
-	# 	print i,np.any(l)
-
-
-	# cv2.imshow('labeled.png', labeled_img)
-	# cv2.waitKey()
-
-# path = "/home/youknowwho/Documents/ROS/src/image_send/images/"
-
-# for t in xrange(22,39):
-# 	p = path + str(t) + ".jpg"
-# 	i = cv2.imread(p)
-# 	i,m = detect_ball(i)
-# 	a = getMultiWindow(i,m)
-# 	print len(a)
-# 	for j in a:
-# 		cv2.imshow("j",j)
-# 		cv2.waitKey()
-# 	cv2.destroyWindow("preview")

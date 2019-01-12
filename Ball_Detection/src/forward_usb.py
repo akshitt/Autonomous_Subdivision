@@ -14,7 +14,8 @@ import detect_ball
 import time
 import os
 
-max_size = 255*1000 # max size of ball allowed
+max_size = 255*100000 # max size of ball allowed
+full_size = 255*100000 # size of ball at minimum distance
 #Number of images for one rotation (TODO: get this via IMU)
 one_rot = 250
 #Number of Pixels highlighted (output of unsupervised)
@@ -22,7 +23,9 @@ mask_size = np.zeros(one_rot)
 #Ball Probability (output of supervised)
 ball_prob = np.zeros(one_rot)
 #List of np arrays: storing images
-data = np.zeros(one_rot,2)
+data = np.zeros([one_rot,2])
+
+t = 0
 new_model = load_model('/home/youknowwho/Documents/ROS/src/image_rcv/src/new_model_num_coluoured.h5')
 
 def supervised(array):
@@ -82,13 +85,16 @@ if __name__ == '__main__':
 			if not np.any(mask):
 				continue
 
+			if np.sum(mask) > full_size:
+				print "ball reached\t",np.sum(mask)
+				break
+			
 			img_array = detect_ball.getMultiWindow(image, mask) # crop image and resize to 50x50
-			d = supervised(img_array)
-			data.append(d)
-			print "prob", d, "\ttime", time.time() - start
+			data[t] = supervised(img_array)
+			print "prob", data[t], "\ttime", time.time() - start
 			cv2.imshow("mask", mask)
 			cv2.imshow("frame", image)
-			cv2.imshow("window",img_array[d[0]])
+			cv2.imshow("window",img_array[int(data[t][0])])
 			# cv2.imwrite("/home/youknowwho/Documents/ROS/src/image_send/labled/" + str(t) + ".jpg", labled)
 			# path = '/home/youknowwho/Documents/ROS/src/image_send/ball/' + str(t)
 			# if not os.path.exists(path):
@@ -104,9 +110,11 @@ if __name__ == '__main__':
 			# cv2.imshow("window", data[test(data)])
 			# print "prob\t", test(data), '\t', testvalue(data)#, '\t', time.time()-s
     		key = cv2.waitKey(20)
-    	cv2.destroyWindow("preview")
+	cv2.destroyWindow("preview")
 
 # how to get output of supervised with sync
 # how to store relevant data from output of unsup and sup
 # how to determine whether other node has failed
 # how to get direction data with sync
+
+# stop on reaching ball

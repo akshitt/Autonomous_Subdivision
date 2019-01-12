@@ -21,8 +21,9 @@ mask_size = np.zeros(one_rot)
 #Ball Probability (output of supervised)
 ball_prob = np.zeros(one_rot)
 #List of np arrays: storing images
-data = np.zeros(one_rot,2)
+data = np.zeros([one_rot,2])
 
+t = 0
 #make ./file.h5
 #Feed Forward wts
 new_model = load_model('/home/youknowwho/Documents/ROS/src/image_rcv/src/new_model_num_coluoured.h5')
@@ -51,7 +52,7 @@ def supervised(array):
 
 if __name__ == '__main__':
 
-	resource = 1
+	resource = 0
 	print "Trying to open resource: " + str(resource)
 	cap = cv2.VideoCapture(resource)
 	# cap.set(cv2.CAP_PROP_POS_MSEC, 1000)
@@ -76,14 +77,14 @@ if __name__ == '__main__':
 			print "prob", data[t], "\ttime", time.time() - start
 			cv2.imshow("mask", mask)
 			cv2.imshow("frame", image)
-			cv2.imshow("window",img_array[data[t][0]])
+			cv2.imshow("window",img_array[int(data[t][0])])
 			t = t + 1
 
 			if t == one_rot:
 				# np.save(str(no) + ".npy", data)
 				break
     		key = cv2.waitKey(20)
-    	cv2.destroyWindow("preview")
+	cv2.destroyWindow("preview")
 
 # how to get output of supervised with sync
 # how to store relevant data from output of unsup and sup

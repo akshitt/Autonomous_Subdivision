@@ -23,26 +23,14 @@ def hyst_threshold(mask_high,mask_low):
 	return Visited.astype(np.uint8)
 
 def cluster():
-	# if clusterQ.empty():
-	# 	# print "done by empty"
-	# 	return
-
 	(i,j) = clusterQ.get()
-
 	if (i<0 or j<0 or i>=Visited.shape[0] or j>=Visited.shape[1]):
-		# print "done by index" + str((i,j))
 		return
 
-	# print "hyst: " + str(i) + str(j)
 	if (Visited[i,j]>0):
-		# print "done by Visited" + str((i,j))
 		return
-
 	if (low_mask[i,j]==0):
-		# print "done by mask" + str((i,j))
 		return
-
-	# print (i,j)
 
 	Visited[i,j] = 255
 	clusterQ.put((i-1,j))
