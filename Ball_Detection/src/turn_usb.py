@@ -33,20 +33,6 @@ def supervised(array):
 	# a = np.load("/home/ameya/Desktop/MRT/no_ball_h3.npy")
 	# Input: np array of images Output: Max probab and index
 	b = (new_model.predict(array, batch_size=None, verbose=0, steps=None))
-	# i = 0
-	# store = 0
-	# big = 0
-	# while i< len(b):
-	# 	z = big
-	# 	big = max(big,b[i][0])
-	# 	# print "prob", i,"\t",b[i][0]
-	# 	if big > z:
-	# 		store = i
-	# 	i = i+1
-	# big=np.max(b[])
-	# # print
-	# # print
-	# # Max probab and index
 	return np.argmax(b[:,0]),np.max(b[:,0])
 
 
