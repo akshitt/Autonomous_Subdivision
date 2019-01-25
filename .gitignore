@@ -30,7 +30,7 @@ devel_isolated/
 .cproject
 
 # qcreator stuff
-CMakeLists.txt.user
+#CMakeLists.txt.user
 
 srv/_*.py
 *.pcd
@@ -48,4 +48,4 @@ qtcreator-*
 .#*
 
 # Catkin custom files
-CATKIN_IGNORE
+#CATKIN_IGNORE

@@ -2,7 +2,7 @@ import numpy as np
 import cv2
 import Queue
 
-np.set_printoptions(threshold='nan')
+#np.set_printoptions(threshold='nan')
 Visited = np.zeros((1,1))
 low_mask = np.zeros((1,1))
 

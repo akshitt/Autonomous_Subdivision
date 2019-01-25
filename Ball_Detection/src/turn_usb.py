@@ -28,7 +28,7 @@ def IMU_callback(inp):
 	global curr_heading, enable_currheading
 	if(not enable_currheading):
 		enable_currheading=True
-	curr_heading=np.argmin(np.abs(inp.data[0]-IMU_indice))
+	curr_heading=np.argmin(np.abs((inp.data[2]*180/np.pi)-IMU_indice))
 
 def supervised(array):
 	# a = np.load("/home/ameya/Desktop/MRT/no_ball_h3.npy")
@@ -41,6 +41,7 @@ def supervised(array):
 if __name__ == '__main__':
 
 	signal.signal(signal.SIGINT, sigint_handler)
+	enable_gui = True 
 
 	max_size = 255*1000 # max size of ball allowed
 	#Number of images for one rotation (TODO: get this via IMU)
@@ -52,12 +53,13 @@ if __name__ == '__main__':
 	ball_prob = np.zeros(one_rot)
 	#List of np arrays: storing images
 	data = np.zeros([one_rot,2])
+	probab=np.zeros(one_rot)
 	IMU_indice=np.linspace(-178,180,180)
 	curr_heading=0
-	enable_currheading=False
+	enable_currheading=True
 	#make ./file.h5
 	#Feed Forward wts
-	new_model = load_model('./new_model_num_coluoured.h5')
+	new_model = load_model('/home/rover-nuc/autonom_ws/src/Ball_Detection/src/new_model_num_coluoured.h5')
 	rospy.init_node('turn usb ball detec node', anonymous=True)
 	IMU_sub=rospy.Subscriber("IMU", Float32MultiArray, IMU_callback)
 
@@ -76,7 +78,7 @@ if __name__ == '__main__':
 	while not rospy.is_shutdown():
 		rval, frame = cap.read()
 		if rval and enable_currheading:
-			# cv2.imwrite("/home/youknowwho/Documents/ROS/src/image_send/ball/" + str(t) + ".jpg", frame)
+			cv2.imwrite("/home/ameya/Desktop/MRT/Current" + str(curr_heading) + ".jpg", frame)
 			start = time.time()
 			image, mask = detect_ball.detect_ball(frame) # get hysterisis mask
 			
@@ -85,17 +87,21 @@ if __name__ == '__main__':
 			#Stores windows
 			img_array = detect_ball.getMultiWindow(image, mask) # crop image and resize to 50x50
 			#Stores best
-			data[IMU_indice] = supervised(img_array)
-			print "prob", data[t], "\ttime", time.time() - start
-			cv2.imshow("mask", mask)
-			cv2.imshow("frame", image)
-			cv2.imshow("window",img_array[int(data[t][0])])
-			t = t + 1
+			data[curr_heading] = supervised(img_array)
+			probab[curr_heading]=data[curr_heading][1]
+
+
+			print "prob", data[curr_heading], "\ttime", time.time() - start
+			#cv2.imshow("mask", mask)
+			#cv2.imshow("frame", image)
+			#cv2.imshow("window",img_array[int(data[curr_heading][0])])
+			# t = t + 1
 
 			# if t == one_rot:
 			# 	# np.save(str(no) + ".npy", data)
 			# 	break
     		key = cv2.waitKey(20)
+    		print("Ball most probably at:" + str(IMU_indice[np.argmax(probab)]) + "With Probability: "+ str(np.max(probab)))
 	cv2.destroyWindow("preview")
 
 # how to get output of supervised with sync
