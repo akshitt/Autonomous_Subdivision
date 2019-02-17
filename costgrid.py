@@ -7,9 +7,12 @@ import signal
 import pdb
 from std_msgs.msg import String, Float32, Float32MultiArray, Float64MultiArray
 from sensor_msgs.msg import LaserScan
+from obstacle_detector.msg import Obstacles, SegmentObstacle, CircleObstacle
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import time
+
+
 
 #---------------------------------------------------------------------------
 #SIGINT handler
@@ -44,9 +47,11 @@ class cost_grid_class:
 		#Initialize current and past grid coordinates (to follow conventions)
 		self.curr_grid_coord = (int(self.source_utm[1]+self.utm_offset[1]), int(self.source_utm[0]+self.utm_offset[0]))
 		self.past_grid_coord = (int(self.source_utm[1]+self.utm_offset[1]), int(self.source_utm[0]+self.utm_offset[0]))
-		self.scan_data = []	
+	
+		self.segmentObstacles = []
+		self.circleObstacles = []
 
-
+		self.obstacles_list = []
 
 	def gps_callback(self,inp):
 		#Convert to UTM
@@ -64,19 +69,51 @@ class cost_grid_class:
 		self.curr_heading = inp.data[2]
 	#---------------------------------------------------------------------------
 
-	def scan_callback(self,inp):
-		self.scan_data = inp.ranges
+	def obstacle_callback(self,inp):
+		self.segmentObstacles = inp.segments
+		self.circleObstacles = inp.circles
 	#---------------------------------------------------------------------------
 
 	def update_cost_grid(self): # assuming North is in y-direction of the grid
-	    obstacle_range  = self.curr_heading + self.scan_range
-	    if(len(self.scan_data)!=0):
-	        for i in range(0,len(self.scan_range)):
-	            if(not np.isnan(self.scan_data[i])):
-	            	# minus for the convention
-		            coord = [self.curr_grid_coord[0] - self.scan_data[i]*math.sin(-obstacle_range[i]), self.curr_grid_coord[1] - self.scan_data[i]*math.cos(-obstacle_range[i])]
-		            print("cost grid updated: "+str(coord))
-		            self.cost_grid[int(coord[0])][int(coord[1])] += 10.0 #20.0 is just a factor. we can tune it according to requirements of path planning algo
+	    # obstacle_range  = self.curr_heading + self.scan_range
+	    # if(len(self.scan_data)!=0):
+	    #     for i in range(0,len(self.scan_range)):
+	    #         if(not np.isnan(self.scan_data[i])):
+	    #         	# minus for the convention
+		   #          coord = [self.curr_grid_coord[0] - self.scan_data[i]*math.sin(-obstacle_range[i]), self.curr_grid_coord[1] - self.scan_data[i]*math.cos(-obstacle_range[i])]
+		   #          print("cost grid updated: "+str(coord))
+		   #          self.cost_grid[int(coord[0])][int(coord[1])] += 10.0 #20.0 is just a factor. we can tune it according to requirements of path planning algo
+
+		for segment in self.segmentObstacles:
+			beginx = segment.first_point.x + curr_grid_coord[0]
+			beginy = segment.first_point.y + curr_grid_coord[1]
+			endx   = segment.last_point.x + curr_grid_coord[0]
+			endy   = segment.last_point.y + curr_grid_coord[1]
+
+			if(beginy==beginx):	
+				for j in range(int(endx),int(endy+1)):
+					self.cost_grid[int(beginx)][int(j)]=1
+					self.obstacles_list.append(np.array([int(beginx),int(j)]))
+				continue
+
+			slope = (endy-endx)/(beginy-beginx)
+			for j in range(int(beginx),int(endx+1)):
+				for k in range(int(slope) + np.sign(slope)):
+					self.cost_grid[j][int(beginy)+k] = 1        #for every x, these many y's are updated
+					self.obstacles_list.append(np.array([j,int(beginy)+k]))
+					beginy+=slope
+
+		for circle in self.circleObstacles:
+			x = int(circle.centre.x + curr_grid_coord[0])
+			y = int(circle.centre.y + curr_grid_coord[1])
+			rad = int((circle.radius + circle.true_radius)/2) + 1
+
+			for j in range(2*rad):
+				for k in range(2*rad):
+					self.cost_grid[x - rad + j][y - rad + k] = 1
+					self.obstacles_list.append(np.array([x - rad + j, y - rad + k]))
+
+
 
 ##code to subscribe gps data and heading data to update curr_utm and curr_heading 
 
@@ -85,7 +122,7 @@ grid_obj=cost_grid_class()
 signal.signal(signal.SIGINT, sigint_handler)
 rospy.Subscriber('LatLon',Float64MultiArray, grid_obj.gps_callback)
 rospy.Subscriber('IMU',Float32MultiArray, grid_obj.imu_callback)
-rospy.Subscriber('scan',LaserScan, grid_obj.scan_callback)
+rospy.Subscriber('raw_obstacles',Obstacles, grid_obj.obstacle_callback)
 rospy.init_node('Level4', anonymous=True)
 # dynamic code plotting
 plt.ion()
