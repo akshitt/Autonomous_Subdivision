@@ -35,7 +35,6 @@ class cost_grid_class:
 
 		#Define UTM Offset such that source is at 500,500
 		self.utm_offset = (500 - self.source_utm[0], 500 - self.source_utm[1]) 
-		self.scan_range = np.linspace(-0.6, 0.6, 51)
 
 		#Initial Value of current utm
 		self.curr_utm = self.source_utm
@@ -69,14 +68,17 @@ class cost_grid_class:
 	#---------------------------------------------------------------------------
 
 	def update_cost_grid(self): # assuming North is in y-direction of the grid
-	    obstacle_range  = self.curr_heading + self.scan_range
+	    num_angdivisions=len(self.scan_data)
+	    scan_range=np.linspace(-np.pi/2, np.pi/2, num_angdivisions)
+	    obstacle_range  = self.curr_heading + scan_range
+
 	    if(len(self.scan_data)!=0):
-	        for i in range(0,len(self.scan_range)):
-	            if(not np.isnan(self.scan_data[i])):
+	        for i in range(0,num_angdivisions):
+	            if((not np.isnan(self.scan_data[i])) and (self.scan_data[i]>0.5)):
 	            	# minus for the convention
 		            coord = [self.curr_grid_coord[0] - self.scan_data[i]*math.sin(-obstacle_range[i]), self.curr_grid_coord[1] - self.scan_data[i]*math.cos(-obstacle_range[i])]
 		            print("cost grid updated: "+str(coord))
-		            self.cost_grid[int(coord[0])][int(coord[1])] += 10.0 #20.0 is just a factor. we can tune it according to requirements of path planning algo
+		            self.cost_grid[int(coord[0])][int(coord[1])] += 1.0 #20.0 is just a factor. we can tune it according to requirements of path planning algo
 
 ##code to subscribe gps data and heading data to update curr_utm and curr_heading 
 
@@ -92,7 +94,7 @@ plt.ion()
 fig = plt.figure()
 ax = fig.add_subplot(1,1,1) 
 cmap = colors.ListedColormap(['red', 'blue','green'])
-bounds = [0,20,9000,20000]
+bounds = [0,100,9000,20000]
 norm = colors.BoundaryNorm(bounds, cmap.N)
 # cost_grid=np.random.rand(1000,1000)*30
 ax.set_xlim(0,1000)
