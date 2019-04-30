@@ -11,6 +11,7 @@ android {
         targetSdkVersion 25
         versionCode 1
         versionName "1.0"
+        resValue "string", "google_maps_key", (project.findProperty("GOOGLE_MAPS_API_KEY") ?: "")
     }
     buildTypes {
         release {
@@ -28,4 +29,6 @@ android {
 
 dependencies {
     compile project(':libraries:rosandroid-core')
+    compile 'com.google.android.gms:play-services:9.8.0'
+    compile 'com.android.support:appcompat-v7:24.2.1'
 }

@@ -30,6 +30,7 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
+import android.util.Log;
 import android.view.View;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
@@ -209,7 +210,7 @@ public class MasterChooser extends AppCompatActivity {
       @Override
       public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
         selectedInterface = parent.getItemAtPosition(position).toString();
-        toast("Using " + selectedInterface + " interface.");
+//        toast("Using " + selectedInterface + " interface.");
       }
     });
 
@@ -221,34 +222,8 @@ public class MasterChooser extends AppCompatActivity {
     uriText.setText(uri);
 
     connectionLayout = (LinearLayout) findViewById(R.id.connection_layout);
-  }
 
-  public String getROS_IP(){
-    return ROS_IP;
-  }
-  @Override
-  public void onActivityResult(int requestCode, int resultCode, Intent intent) {
-    // If the Barcode Scanner returned a string then display that string.
-    if (requestCode == 0) {
-      if (resultCode == RESULT_OK) {
-        String scanResultFormat = intent.getStringExtra("SCAN_RESULT_FORMAT");
-        Preconditions.checkState(scanResultFormat.equals("TEXT_TYPE")
-                || scanResultFormat.equals("QR_CODE"));
-        String contents = intent.getStringExtra("SCAN_RESULT");
-        uriText.setText(contents);
-      }
-    }
-  }
-
-  @Override
-  public void onBackPressed() {
-    //Prevent user from going back to Launcher Activity since no Master is connected.
-    this.moveTaskToBack(true);
-  }
-
-  public void okButtonClicked(View unused) {
-
-    ROS_IP= ipText.getText().toString();
+    ROS_IP= "192.168.0.100";
 
     String tmpURI = uriText.getText().toString();
 
@@ -261,8 +236,8 @@ public class MasterChooser extends AppCompatActivity {
     }
 
     // Set the URI for connection.
-    final String uri = tmpURI;
-
+//    final String uri = tmpURI;
+//    Log.d("URI:",uri);
     // Prevent further edits while we verify the URI.
     // Note: This was placed after the URI port check due to odd behavior
     // with setting the connectButton to disabled.
@@ -284,7 +259,7 @@ public class MasterChooser extends AppCompatActivity {
       @Override
       protected Boolean doInBackground(Void... params) {
         try {
-          MasterClient masterClient = new MasterClient(new URI(uri));
+          MasterClient masterClient = new MasterClient(new URI("http://192.168.0.114:11311/"));
           masterClient.getUri(GraphName.of("android/master_chooser_activity"));
           toast("Connected!");
           return true;
@@ -317,7 +292,7 @@ public class MasterChooser extends AppCompatActivity {
         });
         if (result) {
           //Update Recent Master URI
-          addRecentMasterURI(uri);
+//          addRecentMasterURI("http://192.168.0");
           // If the displayed URI is valid then pack that into the intent.
           // Package the intent to be consumed by the calling activity.
           Intent intent = createNewMasterIntent(false, true);
@@ -338,6 +313,34 @@ public class MasterChooser extends AppCompatActivity {
         Toast.makeText(MasterChooser.this, text, Toast.LENGTH_SHORT).show();
       }
     });
+  }
+
+  public String getROS_IP(){
+    return ROS_IP;
+  }
+  @Override
+  public void onActivityResult(int requestCode, int resultCode, Intent intent) {
+    // If the Barcode Scanner returned a string then display that string.
+    if (requestCode == 0) {
+      if (resultCode == RESULT_OK) {
+        String scanResultFormat = intent.getStringExtra("SCAN_RESULT_FORMAT");
+        Preconditions.checkState(scanResultFormat.equals("TEXT_TYPE")
+                || scanResultFormat.equals("QR_CODE"));
+        String contents = intent.getStringExtra("SCAN_RESULT");
+        uriText.setText(contents);
+      }
+    }
+  }
+
+  @Override
+  public void onBackPressed() {
+    //Prevent user from going back to Launcher Activity since no Master is connected.
+    this.moveTaskToBack(true);
+  }
+
+  public void okButtonClicked(View unused) {
+
+
   }
 
   public void qrCodeButtonClicked(View unused) {

@@ -1,3 +1,4 @@
+
 import numpy as np
 import math 
 import utm
@@ -107,4 +108,3 @@ while True:
 	im.set_data(grid_obj.cost_grid)
 	plt.pause(0.01)
 	# print(cost_grid[curr_grid_coord[0]][curr_grid_coord[1]])
-	time.sleep(0.1)
