@@ -25,6 +25,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.net.Uri;
+import android.net.wifi.WifiManager;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -46,10 +47,14 @@ import org.ros.internal.node.xmlrpc.XmlRpcTimeoutException;
 import org.ros.namespace.GraphName;
 import org.ros.node.NodeConfiguration;
 
+import java.math.BigInteger;
+import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.UnknownHostException;
+import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -223,7 +228,8 @@ public class MasterChooser extends AppCompatActivity {
 
     connectionLayout = (LinearLayout) findViewById(R.id.connection_layout);
 
-    ROS_IP= "192.168.0.100";
+    ROS_IP= wifiIpAddress(this.getApplicationContext());
+    Log.d("ROSIP:",ROS_IP);
 
     String tmpURI = uriText.getText().toString();
 
@@ -234,7 +240,12 @@ public class MasterChooser extends AppCompatActivity {
       tmpURI = String.format(Locale.getDefault(),"%s:%d/",tmpURI,DEFAULT_PORT);
       uriText.setText(tmpURI);
     }
+    try{
+        Thread.sleep(1000);
+    }
+    catch (InterruptedException e){
 
+    }
     // Set the URI for connection.
 //    final String uri = tmpURI;
 //    Log.d("URI:",uri);
@@ -454,6 +465,28 @@ public class MasterChooser extends AppCompatActivity {
     return recentURIs;
   }
 
+    protected String wifiIpAddress(Context context) {
+
+        WifiManager wifiManager = (WifiManager) context.getSystemService(WIFI_SERVICE);
+        int ipAddress = wifiManager.getConnectionInfo().getIpAddress();
+
+        // Convert little-endian to big-endianif needed
+        if (ByteOrder.nativeOrder().equals(ByteOrder.LITTLE_ENDIAN)) {
+            ipAddress = Integer.reverseBytes(ipAddress);
+        }
+
+        byte[] ipByteArray = BigInteger.valueOf(ipAddress).toByteArray();
+
+        String ipAddressString;
+        try {
+            ipAddressString = InetAddress.getByAddress(ipByteArray).getHostAddress();
+        } catch (UnknownHostException ex) {
+            Log.e("WIFIIP", "Unable to get host address.");
+            ipAddressString = null;
+        }
+
+        return ipAddressString;
+    }
   /**
    * Regular expressions used with ROS URIs.
    *
@@ -537,5 +570,7 @@ public class MasterChooser extends AppCompatActivity {
             + ")");
 
     public static final Pattern PORT = Pattern.compile(PORT_NUMBER);
+
+
   }
 }
