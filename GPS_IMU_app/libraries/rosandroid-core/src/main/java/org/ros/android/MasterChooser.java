@@ -157,40 +157,40 @@ public class MasterChooser extends AppCompatActivity {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.master_chooser);
     final Pattern uriPattern = RosURIPattern.URI;
-    uriText = findViewById(R.id.master_chooser_uri);
-    ipText = findViewById(R.id.ip_chooser);
+//    uriText = findViewById(R.id.master_chooser_uri);
+//    ipText = findViewById(R.id.ip_chooser);
 
-    connectButton = findViewById(R.id.master_chooser_ok);
-    uriText.setThreshold(RosURIPattern.HTTP_PROTOCOL_LENGTH);
+//    connectButton = findViewById(R.id.master_chooser_ok);
+//    uriText.setThreshold(RosURIPattern.HTTP_PROTOCOL_LENGTH);
 
     ArrayAdapter<String> uriAdapter = new ArrayAdapter<>
             (this,android.R.layout.select_dialog_item,getRecentMasterURIs());
-    uriText.setAdapter(uriAdapter);
+//    uriText.setAdapter(uriAdapter);
 
 
 
-    uriText.addTextChangedListener(new TextWatcher() {
-      @Override
-      public void onTextChanged(CharSequence s, int start, int before, int count) {
-        final String uri = s.toString();
-        if(!uriPattern.matcher(uri).matches()) {
-          uriText.setError("Please enter valid URI");
-          connectButton.setEnabled(false);
-        }
-        else {
-          uriText.setError(null);
-          connectButton.setEnabled(true);
-        }
-      }
+//    uriText.addTextChangedListener(new TextWatcher() {
+//      @Override
+//      public void onTextChanged(CharSequence s, int start, int before, int count) {
+//        final String uri = s.toString();
+//        if(!uriPattern.matcher(uri).matches()) {
+//          uriText.setError("Please enter valid URI");
+//          connectButton.setEnabled(false);
+//        }
+//        else {
+//          uriText.setError(null);
+//          connectButton.setEnabled(true);
+//        }
+//      }
 
-      @Override
-      public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-      }
-
-      @Override
-      public void afterTextChanged(Editable s) {
-      }
-    });
+//      @Override
+//      public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+//      }
+//
+//      @Override
+//      public void afterTextChanged(Editable s) {
+//      }
+//    });
 
     ListView interfacesList = findViewById(R.id.networkInterfaces);
     final List<String> list = new ArrayList<>();
@@ -221,39 +221,20 @@ public class MasterChooser extends AppCompatActivity {
 
     // Get the URI from preferences and display it. Since only primitive types
     // can be saved in preferences the URI is stored as a string.
-    String uri =
-            getPreferences(MODE_PRIVATE).getString(PREFS_KEY_NAME,
-                    NodeConfiguration.DEFAULT_MASTER_URI.toString());
-    uriText.setText(uri);
+
 
     connectionLayout = (LinearLayout) findViewById(R.id.connection_layout);
 
     ROS_IP= wifiIpAddress(this.getApplicationContext());
     Log.d("ROSIP:",ROS_IP);
 
-    String tmpURI = uriText.getText().toString();
 
-    // Check to see if the URI has a port.
-    final Pattern portPattern = RosURIPattern.PORT;
-    if(!portPattern.matcher(tmpURI).find()) {
-      // Append the default port to the URI and update the TextView.
-      tmpURI = String.format(Locale.getDefault(),"%s:%d/",tmpURI,DEFAULT_PORT);
-      uriText.setText(tmpURI);
-    }
     try{
         Thread.sleep(1000);
     }
     catch (InterruptedException e){
 
     }
-    // Set the URI for connection.
-//    final String uri = tmpURI;
-//    Log.d("URI:",uri);
-    // Prevent further edits while we verify the URI.
-    // Note: This was placed after the URI port check due to odd behavior
-    // with setting the connectButton to disabled.
-    uriText.setEnabled(false);
-    connectButton.setEnabled(false);
 
     // Make sure the URI can be parsed correctly and that the master is
     // reachable.
@@ -381,7 +362,7 @@ public class MasterChooser extends AppCompatActivity {
 
   public Intent createNewMasterIntent(boolean newMaster, boolean isPrivate) {
     Intent intent = new Intent();
-    final String uri = uriText.getText().toString();
+    final String uri = "http://192.168.0.114:11311";
     intent.putExtra("ROS_MASTER_CREATE_NEW", newMaster);
     intent.putExtra("ROS_MASTER_PRIVATE", isPrivate);
     intent.putExtra("ROS_MASTER_URI", uri);
