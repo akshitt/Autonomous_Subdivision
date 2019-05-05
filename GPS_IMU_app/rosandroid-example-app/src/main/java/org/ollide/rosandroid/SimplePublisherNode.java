@@ -24,6 +24,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
 
+import org.ros.android.RosActivity;
 import org.ros.concurrent.CancellableLoop;
 import org.ros.message.MessageListener;
 import org.ros.namespace.GraphName;
@@ -33,6 +34,7 @@ import org.ros.node.NodeMain;
 import org.ros.node.topic.Publisher;
 import org.ros.node.topic.Subscriber;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 
 import std_msgs.Bool;
@@ -45,17 +47,19 @@ import static java.lang.Boolean.TRUE;
 
 public class SimplePublisherNode extends AbstractNodeMain implements NodeMain, MessageListener<Float64MultiArray> {
 
-    private Boolean mode = FALSE;
-    private static final String TAG = SimplePublisherNode.class.getSimpleName();
+    private Boolean mode = TRUE;
     private Publisher<std_msgs.Float64MultiArray> publisher_GPS;
     private Publisher<std_msgs.Float64MultiArray> publisher_combined;
     private Publisher<std_msgs.Float32MultiArray> publisher_IMU;
     private Subscriber<std_msgs.Float64MultiArray> pos_subscriber;
+    private Subscriber<std_msgs.Float64MultiArray> targets_subscriber;
+//    int init_val = -1;
+    public targetCordListener tg_obj=new targetCordListener();
     public boolean toggle;
+    public boolean target_rcvd=FALSE;
     public double[] GPS_arr = {19,71};
     public double[] combined_arr = {19,71,0};
     public float[] Orientation_arr={0,0,0};
-    public float[] LPS_arr=new float[500];
     public double[] message_data = {0,0,0};
     public double[] target_cords={0,0};
     public int GPS_updated=0;
@@ -64,18 +68,19 @@ public class SimplePublisherNode extends AbstractNodeMain implements NodeMain, M
     @Override
     public GraphName getDefaultNodeName() {
         if(mode){
-        return GraphName.of("SimplePublisher/TimeLoopNode_sub");}
+            return GraphName.of("SimplePublisher/GPSIMU_sub");
+        }
+
         else{
-            return GraphName.of("SimplePublisher/TimeLoopNode_pub");
+            return GraphName.of("SimplePublisher/GPSIMU_pub");
         }
     }
 
     @Override
     public void onNewMessage(final std_msgs.Float64MultiArray message) {
-
         message_data=message.getData();
-
     }
+
     @Override
     public void onStart(ConnectedNode connectedNode) {
         if(!mode) {
@@ -84,35 +89,24 @@ public class SimplePublisherNode extends AbstractNodeMain implements NodeMain, M
             publisher_combined = connectedNode.newPublisher(GraphName.of("test"), std_msgs.Float64MultiArray._TYPE);
         }
         else {
-            //publisher_theta = connectedNode.newPublisher((GraphName.of("Theta")), std_msgs.Float32MultiArray._TYPE);
             message_data[0]=19.123442;
             publisher_GPS = connectedNode.newPublisher(GraphName.of("target_LatLon"), std_msgs.Float64MultiArray._TYPE);
             pos_subscriber = connectedNode.newSubscriber(GraphName.of("test"), std_msgs.Float64MultiArray._TYPE);
+            targets_subscriber = connectedNode.newSubscriber(GraphName.of("targets"), std_msgs.Float64MultiArray._TYPE);
             pos_subscriber.addMessageListener(this);
+            targets_subscriber.addMessageListener(tg_obj);
         }
         cNode=connectedNode;
 
         final CancellableLoop loop = new CancellableLoop() {
             @Override
             protected void loop() throws InterruptedException {
-                // retrieve current system time
-                //String time = new SimpleDateFormat("HH:mm:ss").format(new Date());
 
-                //Log.i(TAG, "publishing the current time: " + time);
-
-                // create and publish a simple string message
                 if(!mode) {
                     std_msgs.Float64MultiArray GPS_msg = publisher_GPS.newMessage();
                     std_msgs.Float32MultiArray IMU_msg = publisher_IMU.newMessage();
                     std_msgs.Float64MultiArray combined_msg = publisher_combined.newMessage();
 
-//                std_msgs.Float32MultiArray LPS_msg = publisher_LPS.newMessage();
-                    //std_msgs.Float32MultiArray Theta_msg = publisher_theta.newMessage();
-
-
-
-                    //Theta_msg.setData(Theta_arr);
-                    //Log.i(TAG,Double.toString(longitude)+Double.toString(latitude));
                     IMU_msg.setData(Orientation_arr);
                     GPS_msg.setData(GPS_arr);
                     publisher_GPS.publish(GPS_msg);
@@ -131,14 +125,7 @@ public class SimplePublisherNode extends AbstractNodeMain implements NodeMain, M
                 }
                 else{
                     std_msgs.Float64MultiArray GPS_msg = publisher_GPS.newMessage();
-
-//                  std_msgs.Float32MultiArray LPS_msg = publisher_LPS.newMessage();
-                    //std_msgs.Float32MultiArray Theta_msg = publisher_theta.newMessage();
-
                     GPS_msg.setData(target_cords);
-
-                    //Theta_msg.setData(Theta_arr);
-                    //Log.i(TAG,Double.toString(longitude)+Double.toString(latitude));
                     publisher_GPS.publish(GPS_msg);
 
                 }

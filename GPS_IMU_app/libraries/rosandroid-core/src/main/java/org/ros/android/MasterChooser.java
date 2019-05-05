@@ -128,7 +128,7 @@ public class MasterChooser extends AppCompatActivity {
   private String ROS_IP;
   private Button connectButton;
   private LinearLayout connectionLayout;
-
+  private String fin_uri;
   private class StableArrayAdapter extends ArrayAdapter<String> {
 
     HashMap<String, Integer> idMap = new HashMap<>();
@@ -160,7 +160,7 @@ public class MasterChooser extends AppCompatActivity {
 //    uriText = findViewById(R.id.master_chooser_uri);
 //    ipText = findViewById(R.id.ip_chooser);
 
-//    connectButton = findViewById(R.id.master_chooser_ok);
+//    connectButton = (Button)findViewById(R.id.master_chooser_ok);
 //    uriText.setThreshold(RosURIPattern.HTTP_PROTOCOL_LENGTH);
 
     ArrayAdapter<String> uriAdapter = new ArrayAdapter<>
@@ -226,6 +226,7 @@ public class MasterChooser extends AppCompatActivity {
     connectionLayout = (LinearLayout) findViewById(R.id.connection_layout);
 
     ROS_IP= wifiIpAddress(this.getApplicationContext());
+    fin_uri="http://192.168.0.114:11311";
     Log.d("ROSIP:",ROS_IP);
 
 
@@ -251,7 +252,7 @@ public class MasterChooser extends AppCompatActivity {
       @Override
       protected Boolean doInBackground(Void... params) {
         try {
-          MasterClient masterClient = new MasterClient(new URI("http://192.168.0.114:11311/"));
+          MasterClient masterClient = new MasterClient(new URI(fin_uri));
           masterClient.getUri(GraphName.of("android/master_chooser_activity"));
           toast("Connected!");
           return true;
@@ -290,9 +291,6 @@ public class MasterChooser extends AppCompatActivity {
           Intent intent = createNewMasterIntent(false, true);
           setResult(RESULT_OK, intent);
           finish();
-        } else {
-          connectButton.setEnabled(true);
-          uriText.setEnabled(true);
         }
       }
     }.execute();
@@ -319,7 +317,7 @@ public class MasterChooser extends AppCompatActivity {
         Preconditions.checkState(scanResultFormat.equals("TEXT_TYPE")
                 || scanResultFormat.equals("QR_CODE"));
         String contents = intent.getStringExtra("SCAN_RESULT");
-        uriText.setText(contents);
+//        uriText.setText(contents);
       }
     }
   }
@@ -328,11 +326,6 @@ public class MasterChooser extends AppCompatActivity {
   public void onBackPressed() {
     //Prevent user from going back to Launcher Activity since no Master is connected.
     this.moveTaskToBack(true);
-  }
-
-  public void okButtonClicked(View unused) {
-
-
   }
 
   public void qrCodeButtonClicked(View unused) {
@@ -362,7 +355,7 @@ public class MasterChooser extends AppCompatActivity {
 
   public Intent createNewMasterIntent(boolean newMaster, boolean isPrivate) {
     Intent intent = new Intent();
-    final String uri = "http://192.168.0.114:11311";
+    final String uri = fin_uri;
     intent.putExtra("ROS_MASTER_CREATE_NEW", newMaster);
     intent.putExtra("ROS_MASTER_PRIVATE", isPrivate);
     intent.putExtra("ROS_MASTER_URI", uri);

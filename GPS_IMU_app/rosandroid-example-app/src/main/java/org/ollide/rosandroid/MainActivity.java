@@ -32,6 +32,7 @@ import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.os.Handler;
+import android.provider.Settings;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.text.Html;
@@ -49,6 +50,7 @@ import android.widget.Toast;
 
 import org.ros.address.InetAddressFactory;
 import org.ros.android.RosActivity;
+import org.ros.message.MessageListener;
 import org.ros.node.NodeConfiguration;
 import org.ros.node.NodeMain;
 import org.ros.node.NodeMainExecutor;
@@ -81,7 +83,9 @@ import com.google.android.gms.maps.model.PolylineOptions;
 
 import android.support.v4.app.Fragment;
 
-public class MainActivity extends RosActivity implements LocationListener, SensorEventListener, StepListener, OnMapReadyCallback {
+import std_msgs.Float64MultiArray;
+
+public class MainActivity extends RosActivity implements LocationListener, SensorEventListener, StepListener, OnMapReadyCallback, MessageListener<Float64MultiArray> {
 
     public MainActivity() {
         super("RosAndroidExample", "RosAndroidExample");
@@ -105,12 +109,23 @@ public class MainActivity extends RosActivity implements LocationListener, Senso
     private int mInterval = 2000;
     private int count=5;
     private boolean source_gps_rcvd = FALSE;
+    private boolean target_coords_rcvd = FALSE;
     private GoogleMap googleMap_g;
     private LatLng startLatLon;
     private LatLng previousLatLon;
     private GoogleApiClient mGoogleApiClient;
     private Marker marker;
     private Marker inital_marker;
+    private float[] orientationAngles = {0,0,0};
+    private double[] message_data ={0};
+    private int avg = 0;
+
+
+    @Override
+    public void onNewMessage(final std_msgs.Float64MultiArray message) {
+
+        message_data=message.getData();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -289,8 +304,6 @@ public class MainActivity extends RosActivity implements LocationListener, Senso
     // consider storing these readings as unit vectors.
     @Override
     public void onSensorChanged(SensorEvent event) {
-        Context context = getApplicationContext();
-
         if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
             System.arraycopy(event.values, 0, mAccelerometerReading,
                     0, mAccelerometerReading.length);
@@ -302,11 +315,6 @@ public class MainActivity extends RosActivity implements LocationListener, Senso
             System.arraycopy(event.values, 0, mMagnetometerReading,
                     0, mMagnetometerReading.length);
         }
-        // Wifi RSSI
-        // --------------------------------------------------------------------
-        WifiManager wifiManager = (WifiManager) context.getSystemService(Context.WIFI_SERVICE);
-        WifiInfo wifiInfo = wifiManager.getConnectionInfo();
-        float level = wifiInfo.getRssi();
 
         // --------------------------------------------------------------------
         // Orientation Sensor
@@ -315,22 +323,10 @@ public class MainActivity extends RosActivity implements LocationListener, Senso
         mSensorManager.getRotationMatrix(rotationMatrix, null,
                 mAccelerometerReading, mMagnetometerReading);
 
-        // Express the updated rotation matrix as three orientation angles.
-        float[] orientationAngles = {0,0,0};
-        orientationAngles[0]=(float)Math.atan2(rotationMatrix[7],rotationMatrix[8]);
-        orientationAngles[1]=(float)Math.atan2(-rotationMatrix[6],Math.sqrt(Math.pow(rotationMatrix[7],2)+Math.pow(rotationMatrix[8],2)));
-        orientationAngles[2]=(float)Math.atan2(rotationMatrix[3],rotationMatrix[0]);
-        //mSensorManager.getOrientation(rotationMatrix, orientationAngles);
-        //CharSequence text = steps+":"+level+":"+(orientationAngles[0]*180/3.14)+":"+(orientationAngles[1]*180/3.14)+":"+(orientationAngles[2]*180/3.14);
-        //final TextView helloTextView = (TextView) findViewById(R.id.textView_id);
-        //helloTextView.setText(text);
+        orientationAngles[0]= (float)Math.atan2(rotationMatrix[7],rotationMatrix[8]);
+        orientationAngles[1]= (float)Math.atan2(-rotationMatrix[6],Math.sqrt(Math.pow(rotationMatrix[7],2)+Math.pow(rotationMatrix[8],2)));
+        orientationAngles[2]= (float)Math.atan2(rotationMatrix[3],rotationMatrix[0]);
 
-        for (int i=0;i<3;i++){
-            if(node_sp!=null)
-            {
-                node_sp.Orientation_arr[i]=orientationAngles[i];
-            }
-        }
         final TextView helloTextView = findViewById(R.id.textView3);
         helloTextView.setTextColor(Color.BLACK);
         if(node_sp!=null) {
@@ -342,36 +338,16 @@ public class MainActivity extends RosActivity implements LocationListener, Senso
             helloTextView.setText(angle);
 
             if (node_sp.toggle) {
-                node_sp.LPS_arr[1] = level;
-                node_sp.LPS_arr[2] = orientationAngles[2];
-                node_sp.LPS_arr[3] = 1; //indicates the maximum number of readings for RSSI arr
-                count=5;
-                node_sp.LPS_arr[count]=level;
+                node_sp.Orientation_arr=orientationAngles.clone();
                 node_sp.toggle = FALSE;
+                avg=1;
             } else {
-                node_sp.LPS_arr[0] = steps;
-                node_sp.LPS_arr[1] += level;
-                node_sp.LPS_arr[2] += orientationAngles[2];
-                count=count+1;
-                node_sp.LPS_arr[count]=level;
-                node_sp.LPS_arr[3] += 1;
-                node_sp.LPS_arr[4] = artf_steps;
-
+                for(int i=0;i<3;i++) {
+                    node_sp.Orientation_arr[i] = (node_sp.Orientation_arr[i]*avg + orientationAngles[i])/(avg+1);
+                }
+                avg=avg+1;
             }
         }
-        /*
-        if(orientation_angles.size()<q_size){
-            orientation_angles.add(curr_ang);
-            sum_ang=sum_ang+curr_ang;
-        }
-        else{
-            double remove_elem=orientation_angles.poll();
-            sum_ang=sum_ang-remove_elem+curr_ang;
-            orientation_angles.add(curr_ang);
-        }*/
-        //toast = Toast.makeText(context,text, Toast.LENGTH_LONG);
-        // toast.show();
-        // --------------------------------------------------------------------
 
     }
 
@@ -385,6 +361,7 @@ public class MainActivity extends RosActivity implements LocationListener, Senso
         inital_marker = googleMap.addMarker(new MarkerOptions().position(inital_LatLon)
                 .title("Initial Marker"));
         googleMap.moveCamera(CameraUpdateFactory.newLatLng(inital_LatLon));
+        System.out.println("before map");
         if(googleMap!=null) {
             googleMap.animateCamera(CameraUpdateFactory.zoomTo(18.0f));
             googleMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
@@ -431,46 +408,61 @@ public class MainActivity extends RosActivity implements LocationListener, Senso
         public void run() {
         try {
             if(node_sp!=null && googleMap_g!=null) {
-                if(abs(node_sp.message_data[0])>0.1 && abs(node_sp.message_data[1])>0.1 && !source_gps_rcvd)
-                {
-                    startLatLon = new LatLng(node_sp.message_data[0], node_sp.message_data[1]);
-                    previousLatLon = startLatLon;
-
-                    inital_marker.remove();
-
-                    googleMap_g.addMarker(new MarkerOptions().position(startLatLon)
-                            .title("Initial Marker"));
-                    googleMap_g.moveCamera(CameraUpdateFactory.newLatLng(startLatLon));
-                    source_gps_rcvd = true;
-                }
-                else if( source_gps_rcvd && abs(node_sp.target_cords[0])>0.1 && abs(node_sp.target_cords[1])>0.1){
-                    System.out.println("previousLatLon   "+previousLatLon.latitude+"---"+ previousLatLon.longitude);
-                    System.out.println("message data   "+node_sp.message_data[0]+"---"+ node_sp.message_data[1]);
-                    if (abs(node_sp.message_data[0] - previousLatLon.latitude) > 0.000003 || abs(node_sp.message_data[1] - previousLatLon.longitude) > 0.000003) {
-                        Polyline line = googleMap_g.addPolyline(new PolylineOptions()
-                                .add(previousLatLon, new LatLng(node_sp.message_data[0], node_sp.message_data[1]))
-                                .width(5)
-                                .color(Color.RED));
-
-
-                        if(marker!=null)
-                            marker.remove();
-
-                        MarkerOptions marker_options = new MarkerOptions()
-                                .position(new LatLng(node_sp.message_data[0], node_sp.message_data[1]))
-                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.arrow_small))
-                                .anchor(0.5f, 0.5f)
-                                .rotation((float) node_sp.message_data[2]);
-
-
-
-                        marker = googleMap_g.addMarker(marker_options);
-                        previousLatLon = new LatLng(node_sp.message_data[0], node_sp.message_data[1]);
-//                        final TextView helloTextView = findViewById(R.id.textView3);
-//                        helloTextView.setTextColor(Color.WHITE);
-//                        helloTextView.setText("Steps:" + steps + " Message: Lat : " + node_sp.message_data[0] + " Lon : " + node_sp.message_data[1]);
+                if(!target_coords_rcvd ){
+                    if(node_sp.tg_obj.msg_data[0] != 0) {
+                        target_coords_rcvd = TRUE;
+                        for (int i = 0; i < 10; i += 2) {
+                            if (node_sp.tg_obj.msg_data[i] != 0) {
+                                MarkerOptions marker = new MarkerOptions()
+                                        .position(new LatLng(node_sp.tg_obj.msg_data[i], node_sp.tg_obj.msg_data[i + 1]))
+                                        .title("Marker")
+                                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.target_small));
+                                googleMap_g.addMarker(marker);
+                            }
+                        }
                     }
                 }
+
+//                if(abs(node_sp.message_data[0])>0.1 && abs(node_sp.message_data[1])>0.1 && !source_gps_rcvd)
+//                {
+//                    startLatLon = new LatLng(node_sp.message_data[0], node_sp.message_data[1]);
+//                    previousLatLon = startLatLon;
+//
+//                    inital_marker.remove();
+//
+//                    googleMap_g.addMarker(new MarkerOptions().position(startLatLon)
+//                            .title("Initial Marker"));
+//                    googleMap_g.moveCamera(CameraUpdateFactory.newLatLng(startLatLon));
+//                    source_gps_rcvd = true;
+//                }
+//                else if( source_gps_rcvd && abs(node_sp.target_cords[0])>0.1 && abs(node_sp.target_cords[1])>0.1){
+//                    System.out.println("previousLatLon   "+previousLatLon.latitude+"---"+ previousLatLon.longitude);
+//                    System.out.println("message data   "+node_sp.message_data[0]+"---"+ node_sp.message_data[1]);
+//                    if (abs(node_sp.message_data[0] - previousLatLon.latitude) > 0.000003 || abs(node_sp.message_data[1] - previousLatLon.longitude) > 0.000003) {
+//                        Polyline line = googleMap_g.addPolyline(new PolylineOptions()
+//                                .add(previousLatLon, new LatLng(node_sp.message_data[0], node_sp.message_data[1]))
+//                                .width(5)
+//                                .color(Color.RED));
+//
+//
+//                        if(marker!=null)
+//                            marker.remove();
+//
+//                        MarkerOptions marker_options = new MarkerOptions()
+//                                .position(new LatLng(node_sp.message_data[0], node_sp.message_data[1]))
+//                                .icon(BitmapDescriptorFactory.fromResource(R.drawable.arrow_small))
+//                                .anchor(0.5f, 0.5f)
+//                                .rotation((float) node_sp.message_data[2]);
+//
+//
+//
+//                        marker = googleMap_g.addMarker(marker_options);
+//                        previousLatLon = new LatLng(node_sp.message_data[0], node_sp.message_data[1]);
+////                        final TextView helloTextView = findViewById(R.id.textView3);
+////                        helloTextView.setTextColor(Color.WHITE);
+////                        helloTextView.setText("Steps:" + steps + " Message: Lat : " + node_sp.message_data[0] + " Lon : " + node_sp.message_data[1]);
+//                    }
+//                }
             }
         }finally {
                 // 100% guarantee that this always happens, even if
@@ -480,3 +472,8 @@ public class MainActivity extends RosActivity implements LocationListener, Senso
         }
     };
 }
+
+
+
+
+/// node_tl.targets_coords

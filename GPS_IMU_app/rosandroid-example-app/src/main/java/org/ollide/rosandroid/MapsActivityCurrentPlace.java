@@ -5,4 +5,5 @@ package org.ollide.rosandroid;
  */
 
 public class MapsActivityCurrentPlace {
+
 }
